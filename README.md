@@ -50,3 +50,16 @@ The GPU learns to take commands from a PC, and everything gets a test.
 - **Saving link bandwidth.** Only changed tiles are sent, with run-length compression. A benchmark mode measures it: from 9 bytes per frame for a still picture up to 120,522 bytes for noise ([docs/benchmarks.md](docs/benchmarks.md)).
 
 Next: draw triangles.
+
+<!-- part 3 -->
+### Update 3: Drawing triangles in 3D
+
+![Spinning cube, drawn by the Verilog in simulation](docs/images/spin_simulated.png)
+
+- **Triangle rasterizer** (`rtl/raster.v`, [docs/rasterizer.md](docs/rasterizer.md)). Fixed-point maths for the triangle edges, colour blended across each triangle, a depth test so nearer things hide farther ones, and textures. Bit for bit the same as the Python reference.
+- **Dither** ([docs/windows-and-color-options.md](docs/windows-and-color-options.md)). Smoother colour from few bits: 42.1 dB against 21.8 dB without dither.
+- **Spinning cube demo.** `python -m sw.dtgc spin`. The picture above is what the Verilog drew in simulation, and it matches the emulator.
+
+Size and speed of every build is recorded in [docs/resources.md](docs/resources.md).
+
+Next: make drawing faster.
