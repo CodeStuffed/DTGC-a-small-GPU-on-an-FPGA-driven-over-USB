@@ -63,3 +63,20 @@ Next: draw triangles.
 Size and speed of every build is recorded in [docs/resources.md](docs/resources.md).
 
 Next: make drawing faster.
+
+<!-- part 4 -->
+### Update 4: Making it faster
+
+Five speed steps, each measured in simulation on the same cube frame (340x340 picture):
+
+| Step | Cube frame |
+|---|---|
+| Starting point (25.2 MHz clock) | about 46 ms |
+| Keep SDRAM rows open | about 16 ms |
+| One pixel per clock, burst depth reads | about 8 ms |
+| Faster clears | about 5 ms |
+| Fast depth clear, posted writes, skip empty space | 205,978 clocks down to about 88,000 |
+
+Last, the drawing clock went from about 26 MHz to 46.41 and 48 MHz. That passes the timing estimate and simulation. The SDRAM pin timing is not checked yet (VERIFY).
+
+Next: higher resolutions, up to 1080p.
