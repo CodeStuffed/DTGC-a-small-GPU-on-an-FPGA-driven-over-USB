@@ -80,3 +80,37 @@ Five speed steps, each measured in simulation on the same cube frame (340x340 pi
 Last, the drawing clock went from about 26 MHz to 46.41 and 48 MHz. That passes the timing estimate and simulation. The SDRAM pin timing is not checked yet (VERIFY).
 
 Next: higher resolutions, up to 1080p.
+
+<!-- part 5 -->
+### Update 5: HD output and 1080p30
+
+- **More resolutions.** 1280x720 at 60 Hz and 1920x1080 at 50 Hz. The fast serial clocks these need are untested against the chip's limits (VERIFY).
+- **Upscalers** ([docs/upscale.md](docs/upscale.md)). A Python model first (DT-Upscale), then a bilinear upscaler and an edge-directed x2 upscaler in Verilog. Both match the model bit for bit. No neural networks.
+- **Indexed triangle lists.** A corner shared by several triangles is sent once. The 1148-triangle field scene needs 3.43 times fewer bytes.
+- **1080p at 30 fps** ([docs/architecture-1080p30.md](docs/architecture-1080p30.md)). The GPU draws a 960x540 picture and the edge upscaler doubles it to 1920x1080 on the way out. Drawing every pixel at full size does not fit the board's memory or time ([docs/hd-limits.md](docs/hd-limits.md)).
+
+```mermaid
+flowchart LR
+  PC["PC app"] -- "USB" --> RX["Link and packet parser"]
+  RX --> EXEC["Command executor"]
+  EXEC --> RAST["Triangle rasterizer"]
+  EXEC --> SDRAM[("SDRAM<br/>colour + depth")]
+  RAST --> SDRAM
+  SDRAM --> SCAN["Scan-out"]
+  SCAN --> UP["Upscaler x2"]
+  UP --> TMDS["HDMI encoder"]
+  TMDS --> MON["Monitor"]
+  EXEC -- replies --> PC
+```
+
+Two clock domains: drawing at 46.41 MHz, video at 74.25 MHz with a 371.25 MHz serial clock.
+
+| Measured in simulation | Result |
+|---|---|
+| Spinning cube, 1080p30 build | 255,780 clocks, 5.51 ms |
+| Field of 1148 triangles, 1080p30 build | 1,521,436 clocks, 32.8 ms, 30.5 fps (1.6% inside the budget) |
+| Largest build, `top_gpu_1080p30` | 12,740 of 20,736 LUTs (61%), 10 of 46 block RAMs, core clock estimate 54.52 MHz (needs 46.41) |
+
+What to check first on a real board: [docs/first-hardware.md](docs/first-hardware.md).
+
+Next: an app and a graphics API so programs can use the GPU.
