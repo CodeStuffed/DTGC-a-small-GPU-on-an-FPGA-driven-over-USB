@@ -114,3 +114,71 @@ Two clock domains: drawing at 46.41 MHz, video at 74.25 MHz with a 371.25 MHz se
 What to check first on a real board: [docs/first-hardware.md](docs/first-hardware.md).
 
 Next: an app and a graphics API so programs can use the GPU.
+
+<!-- part 6 -->
+### Update 6: Apps, games and the graphics API
+
+- **Shader** (`rtl/shade_pipe.v`). A pipelined fixed-point shader that matches its model bit for bit. Built and tested, not yet connected to the GPU.
+- **App and games.** `python -m sw.dtgc app` opens one window for everything. `python -m sw.dtgc play pong` runs a game. Tested on the emulator only.
+- **Graphics API** ([docs/api.md](docs/api.md)). Canvas, meshes and frames for your own programs.
+- **Three versions** ([docs/versions.md](docs/versions.md)). One app runs all three:
+
+| | This PC only | Board, HDMI out | Board, USB out |
+|---|---|---|---|
+| What you need | Nothing extra | Tang Nano 20K, HDMI cable, monitor | Tang Nano 20K |
+| Who draws | The PC's own graphics card | The FPGA | The FPGA |
+| Where the picture goes | A window | A monitor | A window on the PC |
+
+- **Direct3D 9 subset** ([docs/direct3d.md](docs/direct3d.md)). A small `d3d9.dll` so some old fixed-function Direct3D 9 programs can draw on DTGC. Modern games will not run.
+
+Next: app packages and a faster USB link.
+
+<!-- part 7 -->
+### Update 7: Windows packages and the fast USB link
+
+- **Windows device** ([docs/windows-device.md](docs/windows-device.md)). A software device so DTGC shows in Device Manager. Untested, because it needs admin rights.
+- **App packages** ([docs/driver-app.md](docs/driver-app.md)). `scripts/package_windows.py` builds a portable `dtgc.exe` (its self-test passes). `scripts/package_linux.py` builds a Linux package, which has not been run on Linux.
+- **FT2232H link** (`rtl/ft_link.v`, `rtl/top_gpu_ft.v`). The board's own USB serial port is assumed at about 0.3 MB/s (not yet measured), which gives about 19.5 fps for the field scene. The FT2232H chip moves 8 bits at a time at 60 MHz, up to about 40 MB/s by its datasheet. The whole GPU with this link passes simulation. It must pass the breakout test in [docs/ft2232h-test.md](docs/ft2232h-test.md) before any board is ordered.
+
+Next: a small board that carries the fast USB chip.
+
+<!-- part 8 -->
+### Update 8: The xDTGC backpack board
+
+![Board top, KiCad 3D render](docs/images/xdtgc_render_top.png)
+
+A small 4-layer board that plugs on top of the Tang Nano 20K and carries the FT2232H. One USB-C cable powers both boards and carries the data. It does not add drawing power or change the HDMI resolution; it only makes the link faster.
+
+| Item | Value |
+|---|---|
+| Size | 54.04 x 25 mm, the same length as the Tang Nano 20K |
+| Layers | 4: top signals, ground, 3.3 V, bottom signals |
+| Main chips | FT2232HL (USB to FIFO), 93LC56B (settings memory), AP2114H-3.3 (3.3 V regulator) |
+| Protection | 500 mA resettable fuse, USB ESD diode, Schottky diode so two USB cables cannot fight |
+| Fitting | Two 1x20 sockets underneath plug onto the Tang's pins |
+| Files | `pcb/backpack/tinygpu_backpack.kicad_sch` (schematic) and `pcb/backpack/tinygpu_backpack.kicad_pcb` (layout), KiCad 10 |
+
+The layout is made by scripts, so it can be rebuilt the same way every time: `scripts/pcb_place.py` places the parts and `scripts/pcb_route.py` routes them. The schematic rule check gives 0 errors and the layout rule check 0 errors, 0 unconnected. The layout review list is [docs/pcb-layout-review.md](docs/pcb-layout-review.md), and how assembly services work is in [docs/pcb-assembly.md](docs/pcb-assembly.md).
+
+Next: a case, the order files, and a careful check of the schematic.
+
+<!-- part 9 -->
+### Update 9: Case, order files and datasheet review
+
+![Case render](docs/images/xdtgc_case_render.png)
+
+- **Case** (`pcb/case/`, [docs/case.md](docs/case.md)). A 3D-printable tray and lid. Its sizes are placeholders until the real boards are measured, so do not print it yet.
+- **Order files** (`pcb/backpack/quote/`). Gerbers, BOM and part positions, made by `python scripts/pcb_quote_pack.py`, which stops if the rule check finds any error. 39 parts on 20 BOM lines, about USD 12.86 per board at cached prices. Not a quote, and stock is not checked. Quote notes: [docs/pcbway-quote.md](docs/pcbway-quote.md).
+- **Datasheet review.** The schematic was checked line by line against the FT2232H datasheet (version 2.3). That fixed four mistakes the automatic checks passed: two filter capacitors on the wrong side of their beads, the settings-memory pull-up on the wrong side of its resistor, the reset pin tied straight to 3.3 V, and a regulator that needed capacitors this board does not use. The board was then re-routed with no vias inside pads: 122 vias, 0.20 mm drill. The USB pair is 0.25 mm tracks with a 0.25 mm gap, about 93 ohm by hand formula (target 90). Lessons from all this: [docs/lessons.md](docs/lessons.md).
+
+Before ordering:
+
+1. Test the FT2232H on a breakout module with jumper wires ([docs/ft2232h-test.md](docs/ft2232h-test.md)). Expected: data passes both ways with no errors. If it fails, do not order.
+2. Measure the real Tang Nano 20K. Expected: 20.32 mm between the two pin rows, and the tallest part lower than the 8.5 mm sockets.
+3. Review the layout with [docs/pcb-layout-review.md](docs/pcb-layout-review.md).
+4. Get a quote. Expected: the fab accepts the 0.20 mm vias and gives a USB pair impedance near 90 ohm.
+5. Check stock of all 20 BOM lines on order day.
+
+After the boards arrive, test them with [docs/pcb-home-test.md](docs/pcb-home-test.md).
+
+Next: write up how to run everything.
